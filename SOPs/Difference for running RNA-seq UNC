@@ -1,0 +1,41 @@
+
+Set up differences for RNA-seq UNC pipeline
+
+Setup the cluster the same way as for RNA-seq non UNC, but instead of needing a venv and pip installing toil-scripts, 
+you'll `git clone toil-scripts -b releases/2.0.x`
+you'll also need to use `cgcloud ssh-cluster` to `pip uninstall toil` and reinstall `pip install toil==3.1.6` to all the nodes
+ 
+There is a convenience script for running on mesos, which you'll edit to change bucket other settings etc.  
+The config you create (there is an example in the directory), must be on every machine, so you'll use the `--share` 
+option and pass in a location where that file is, which will be on `/home/mesosbox/shared`
+
+#instead of steps 1-7
+#ssh as administrator into the Toil leader (-a) so you can do sudo apt-get to install git
+cgcloud ssh —a cluster-name issue88UNCRNA-seq toil-leader
+#install git on the leader
+sudo apt-get install git
+#exit out of the leader
+exit
+
+#the workers were created the cluster, so we need to remove current Toil from all of them
+#use CGCloud to remove the current Toil version from the workers
+cgcloud ssh-cluster --admin toil -o StrictHostKeyChecking=no sudo pip uninstall -y toil
+#install Toil version 3.1.6 on all the workers
+cgcloud ssh-cluster --admin toil -o StrictHostKeyChecking=no sudo pip install toil==3.1.6
+
+#log back into the Toil leader
+cgcloud ssh --cluster-name issue88UNCRNA-seq toil-leader
+#clone the correct toil scripts repo
+git clone https://github.com/BD2KGenomics/toil-scripts -b releases/2.0.x
+#edit the launch script to make sure paths and options are setup correctly
+vim /home/mesosbox/toil-scripts/src/toil_scripts/rnaseq_unc/launch_unc_mesos.sh
+#start a screen session so we can log back in and see progress
+screen
+#set the script as executable
+chmod 775 launch_unc_mesos.sh 
+#run the launch script
+./launch_unc_mesos.sh
+
+
+
+
